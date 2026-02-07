@@ -1,25 +1,49 @@
-import type { CareerPhase } from './types';
+// src/game/constants.ts - COMPLETE AND CORRECT
 
-export const INITIAL_STATE = {
+import type { GameState } from './types';
+
+export const INITIAL_STATE: GameState = {
+  // Player Info
+  currentYear: 2024,
   age: 22,
-  careerPhase: 'Newcomer' as CareerPhase,
+  
+  // Stats
   fame: 5,
-  wealth: 50, // 50 lakhs starting
+  wealth: 50,
   mentalHealth: 80,
   burnout: 10,
-  fanBase: 2,
-  currentYear: 2024,
-  currentScripts: [],
+  publicImage: 50,
+  
+  // Career
+  careerPhase: 'Newcomer',
   filmsCompleted: 0,
   history: [],
+  
+  // Current State
+  currentScripts: [],
+  
+  // Awards
+  awardsWon: [],
+  totalAwards: 0,
+  
+  // Endorsements
+  activeEndorsements: [],
+  endorsementIncome: 0,
+  
+  // Agent
+  currentAgent: 'rookie',
+  agentHiredYear: 2024,
+  
+  // Personal Events
+  eventsThisYear: 0,
+  lastEventId: null,
 };
 
 export const CAREER_PHASE_THRESHOLDS = {
-  Newcomer: { minFame: 0, minFilms: 0 },
-  'Rising Star': { minFame: 20, minFilms: 3 },
-  Established: { minFame: 50, minFilms: 8 },
-  Superstar: { minFame: 75, minFilms: 15 },
-  Veteran: { minFame: 60, minFilms: 25 },
+  'Rising Star': { fame: 20, films: 3 },
+  'Established': { fame: 50, films: 8 },
+  'Superstar': { fame: 75, films: 15 },
+  'Veteran': { fame: 30, films: 25 },
 };
 
 export const GENRE_TRAITS = {
@@ -31,10 +55,4 @@ export const GENRE_TRAITS = {
   Horror: { baseRisk: 0.7, famePotential: 0.5, criticsWeight: 0.4 },
   Social: { baseRisk: 0.8, famePotential: 0.6, criticsWeight: 0.9 },
   Biopic: { baseRisk: 0.5, famePotential: 0.8, criticsWeight: 0.8 },
-};
-
-export const INDIAN_FILM_TITLES = {
-  prefixes: ['Mere', 'Dil', 'Pyaar', 'Zindagi', 'Rang', 'Kal', 'Aaj'],
-  suffixes: ['Ka Safar', 'Ki Kahani', 'Aur Pyaar', 'Ho Gaya', 'Se Pehle'],
-  single: ['Pathaan', 'Jawan', 'Dunki', 'Fighter', 'Singham', 'Raanjhanaa'],
 };

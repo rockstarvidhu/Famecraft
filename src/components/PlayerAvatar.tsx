@@ -1,10 +1,15 @@
+// src/components/PlayerAvatar.tsx
 import { useGameStore } from '../store/gameStore';
-import { getPlayerSprite } from '../utils/assetPaths.ts';
+import { getPlayerSpriteByPhase } from '../utils/assetPaths';
 
 export default function PlayerAvatar() {
-  const { age, mentalHealth } = useGameStore();
+  const { age, mentalHealth, careerPhase } = useGameStore();
   
-  const sprite = getPlayerSprite(age, mentalHealth);
+  // Logic to determine mood for the sprite selection
+  const mood = mentalHealth > 60 ? 'happy' : mentalHealth < 30 ? 'sad' : mentalHealth < 50 ? 'stressed' : 'neutral';
+  
+  // Use the phase-based helper instead of the old age-based one
+  const sprite = getPlayerSpriteByPhase(careerPhase, mood);
   
   return (
     <div className="relative">
@@ -15,14 +20,15 @@ export default function PlayerAvatar() {
           className="w-full h-full object-contain"
           loading="eager"
           onError={(e) => {
-            // Fallback to emoji if image fails
+            // Error fallback to a generic placeholder
             e.currentTarget.style.display = 'none';
-            e.currentTarget.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center text-6xl">🎭</div>';
+            if (e.currentTarget.parentElement) {
+              e.currentTarget.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center text-6xl">🎭</div>';
+            }
           }}
         />
       </div>
       
-      {/* Age badge */}
       <div className="absolute -bottom-2 -right-2 bg-amber-900 text-amber-100 rounded-full w-10 h-10 flex items-center justify-center text-sm font-bold border-2 border-amber-700">
         {age}
       </div>

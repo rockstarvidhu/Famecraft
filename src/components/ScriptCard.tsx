@@ -1,5 +1,5 @@
-import { motion } from 'framer-motion';
-import { useEffect, useMemo, useState } from 'react';
+import { motion, useMotionValue, useTransform } from 'framer-motion';
+import { useState, useEffect, useMemo } from 'react';
 import type { Script } from '../game/types';
 import { POSTER_BY_GENRE, getRandomDirector, getRandomCostar } from '../utils/assetPaths';
 import { useGameStore } from '../store/gameStore';
@@ -10,21 +10,11 @@ interface ScriptCardProps {
   onReject: () => void;
 }
 
-export default function ScriptCard({ script, onAccept, onReject }: ScriptCardProps) {
+export default function ScriptCardArcade({ script, onAccept, onReject }: ScriptCardProps) {
   const { history, fame, careerPhase } = useGameStore();
   
-  // Memoize random selections
   const directorPortrait = useMemo(() => getRandomDirector(), [script.id]);
   const costarPortrait = useMemo(() => getRandomCostar(), [script.id]);
-
-  // Placeholder when portrait fails to load
-  const [directorImgError, setDirectorImgError] = useState(false);
-  const [costarImgError, setCostarImgError] = useState(false);
-
-  useEffect(() => {
-    setDirectorImgError(false);
-    setCostarImgError(false);
-  }, [script.id]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -42,326 +32,565 @@ export default function ScriptCard({ script, onAccept, onReject }: ScriptCardPro
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [onAccept, onReject]);
 
-  // Determine recommendation
   const isRecommended = determineRecommendation(script, fame, careerPhase);
   const advice = getContextualAdvice(script, fame, history);
 
-  const certificationColors = {
-    U: 'bg-green-500 border-green-700',
-    'U-A': 'bg-yellow-500 border-yellow-700',
-    A: 'bg-red-500 border-red-700',
-  };
-
   const riskColors = {
-    Safe: 'text-green-700 bg-green-100 border-green-600',
-    Balanced: 'text-yellow-700 bg-yellow-100 border-yellow-600',
-    Risky: 'text-red-700 bg-red-100 border-red-600',
+    Safe: 'from-green-500 to-green-600',
+    Balanced: 'from-yellow-500 to-yellow-600',
+    Risky: 'from-red-500 to-red-600',
   };
 
-  const riskGlow = {
-    Safe: 'shadow-[0_0_30px_rgba(34,197,94,0.4)]',
-    Balanced: 'shadow-[0_0_30px_rgba(234,179,8,0.4)]',
-    Risky: 'shadow-[0_0_30px_rgba(239,68,68,0.4)]',
+  const riskBg = {
+    Safe: 'bg-green-50',
+    Balanced: 'bg-yellow-50',
+    Risky: 'bg-red-50',
   };
 
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      className={`relative bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 border-4 border-amber-900 rounded-2xl overflow-hidden shadow-[0_16px_32px_rgba(120,53,15,0.6),inset_0_1px_0_rgba(255,255,255,0.3)] max-w-3xl mx-auto ${riskGlow[script.riskProfile]}`}
+      className="relative max-w-6xl mx-auto"
     >
-      {/* PAPER TEXTURE OVERLAY - high opacity aged paper (reference style) */}
-      <div className="absolute inset-0 opacity-80 pointer-events-none z-10"
-        style={{
-          backgroundImage: `
-            repeating-linear-gradient(0deg, rgba(139, 69, 19, 0.08) 0px, transparent 1px, transparent 2px, rgba(139, 69, 19, 0.08) 3px),
-            repeating-linear-gradient(90deg, rgba(139, 69, 19, 0.08) 0px, transparent 1px, transparent 2px, rgba(139, 69, 19, 0.08) 3px),
-            radial-gradient(ellipse at 20% 30%, rgba(139, 69, 19, 0.18) 0%, transparent 50%),
-            radial-gradient(ellipse at 80% 70%, rgba(139, 69, 19, 0.14) 0%, transparent 50%)
-          `
-        }}
-      />
-
-      {/* FILM GRAIN OVERLAY - static (no animation for performance) */}
-      <div 
-        className="absolute inset-0 opacity-55 pointer-events-none z-20 mix-blend-overlay"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.6'/%3E%3C/svg%3E")`,
-          backgroundSize: '200px 200px'
-        }}
-      />
-
-      {/* VIGNETTE */}
-      <div className="absolute inset-0 pointer-events-none z-30"
-        style={{
-          background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.2) 100%)'
-        }}
-      />
-
-      {/* Header Badge */}
-      <div className="relative z-40 bg-gradient-to-r from-amber-800 via-amber-700 to-amber-800 px-4 py-2 flex items-center justify-between border-b-4 border-amber-900">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">🎥</span>
-          <span className="text-white font-bold text-sm tracking-wide uppercase">Movie Offer</span>
-        </div>
-        {isRecommended && (
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg"
-          >
-            <span>✨</span>
-            RECOMMENDED
-          </motion.div>
-        )}
+      {/* FILM STRIP BORDER - TOP */}
+      <div className="relative h-8 bg-black border-4 border-black rounded-t-2xl overflow-hidden">
+        <motion.div 
+          className="absolute inset-0 flex items-center"
+          animate={{ x: [0, -40] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+        >
+          {[...Array(30)].map((_, i) => (
+            <div key={i} className="w-6 h-6 bg-white mx-1 flex-shrink-0 rounded-sm" />
+          ))}
+        </motion.div>
       </div>
 
-      {/* Main Content */}
-      <div className="relative z-40 p-6 grid grid-cols-1 md:grid-cols-[320px_1fr] gap-6">
+      {/* MAIN CARD */}
+      <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border-8 border-black relative overflow-hidden shadow-[0_0_60px_rgba(138,43,226,0.5)]">
         
-        {/* LEFT COLUMN - Visual Elements */}
-        <div className="space-y-5">
-          {/* Movie Poster - LARGER */}
-          <div className="relative">
-            <div className="aspect-[2/3] border-4 border-amber-900 rounded-xl overflow-hidden bg-slate-950 shadow-[0_12px_24px_rgba(0,0,0,0.5),inset_0_2px_4px_rgba(255,255,255,0.1)]">
-              <img 
-                src={POSTER_BY_GENRE[script.genre]} 
-                alt={`${script.genre} poster`}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-            </div>
-            
-            {/* Genre & Cert Badges */}
-            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
-              <span className="px-3 py-1.5 bg-yellow-400 border-3 border-yellow-700 rounded-lg text-xs font-black text-yellow-900 uppercase shadow-lg">
-                {script.genre}
-              </span>
-              <span className={`px-3 py-1.5 border-3 rounded-lg text-xs font-black text-white uppercase shadow-lg ${certificationColors[script.certification]}`}>
-                {script.certification}
-              </span>
-            </div>
-          </div>
+        {/* Scanline effect */}
+        <motion.div
+          className="absolute inset-0 pointer-events-none opacity-10"
+          style={{
+            backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.1) 2px, rgba(255,255,255,0.1) 4px)',
+          }}
+          animate={{ y: [0, 8] }}
+          transition={{ duration: 0.5, repeat: Infinity, ease: 'linear' }}
+        />
 
-          {/* Player Character - vintage paper panel */}
-          <div className="relative bg-gradient-to-br from-[#f4e4c1] via-[#e8d5b7] to-[#d4c5a9] border-4 border-amber-700 rounded-xl p-5 text-center shadow-[0_8px_16px_rgba(120,53,15,0.3),inset_0_1px_0_rgba(255,255,255,0.4)] overflow-hidden">
-            <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E")`, backgroundRepeat: 'repeat', backgroundSize: '80px 80px' }} />
-            <div className="w-40 h-40 mx-auto mb-3 bg-[#e8d5b7] rounded-full border-4 border-amber-600 flex items-center justify-center text-7xl shadow-[inset_0_2px_4px_rgba(139,69,19,0.15),0_4px_12px_rgba(120,53,15,0.25)]">
-              🎭
+        {/* CRT glow */}
+        <div className="absolute inset-0 bg-gradient-radial from-purple-500/10 via-transparent to-transparent pointer-events-none" />
+
+        {/* HEADER - ARCADE STYLE */}
+        <div className="relative bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-400 p-4 border-b-4 border-black">
+          <div className="flex items-center justify-between">
+            <motion.div 
+              className="flex items-center gap-3"
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+            >
+              <motion.span 
+                className="text-5xl"
+                animate={{ rotate: [0, 360] }}
+                transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+              >
+                🎬
+              </motion.span>
+              <div>
+                <h3 className="text-2xl font-black text-black tracking-wider uppercase" 
+                    style={{ textShadow: '2px 2px 0 #fff, 4px 4px 0 rgba(0,0,0,0.3)' }}>
+                  SCRIPT OFFER
+                </h3>
+                <p className="text-sm font-bold text-black/70">INSERT COIN TO CONTINUE</p>
+              </div>
+            </motion.div>
+
+            {/* Genre Badge - Pixel Style */}
+            <div className="relative">
+              <div className={`px-6 py-3 bg-black border-4 border-white font-black text-2xl text-yellow-400 uppercase tracking-widest shadow-[4px_4px_0_rgba(255,215,0,0.5)]`}
+                   style={{ imageRendering: 'pixelated' }}>
+                {getGenreEmoji(script.genre)} {script.genre}
+              </div>
             </div>
-            <p className="relative text-base font-black text-amber-900 tracking-wide uppercase">You</p>
           </div>
         </div>
 
-        {/* RIGHT COLUMN - Details */}
-        <div className="space-y-4">
-          {/* Title with decorative separator */}
-          <div>
-            <h2 className="text-4xl font-black text-amber-900 mb-3 tracking-tight leading-tight drop-shadow-sm">
-              {script.title}
-            </h2>
-            <div className="h-1.5 w-32 bg-gradient-to-r from-amber-700 via-amber-500 to-transparent rounded-full mb-3 shadow-sm"></div>
-            <p className="text-sm text-amber-800 leading-relaxed">
-              {script.synopsis}
-            </p>
-          </div>
-
-          {/* Agent's Advice */}
-          {advice && (
+        {/* MAIN CONTENT AREA */}
+        <div className="p-8 grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-8">
+          
+          {/* LEFT - POSTER & PLAYER */}
+          <div className="space-y-6">
+            
+            {/* Movie Poster - Arcade Cabinet Style */}
             <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              className="bg-gradient-to-r from-blue-100 to-purple-100 border-3 border-blue-700 rounded-xl p-4 shadow-md"
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+              className="relative"
             >
-              <div className="flex items-start gap-3">
-                <span className="text-2xl">💡</span>
-                <div className="flex-1">
-                  <div className="font-bold text-sm text-blue-900 mb-1 uppercase tracking-wide">Agent's Advice</div>
-                  <p className="text-sm text-blue-800 leading-relaxed">{advice}</p>
+              {/* CRT Screen Frame */}
+              <div className="bg-gradient-to-br from-gray-800 via-gray-900 to-black p-4 rounded-3xl border-8 border-gray-700 shadow-[inset_0_0_30px_rgba(0,0,0,0.8)]">
+                <div className="aspect-[2/3] rounded-2xl overflow-hidden border-4 border-black shadow-[0_0_40px_rgba(138,43,226,0.6)] relative bg-black">
+                  <img 
+                    src={POSTER_BY_GENRE[script.genre]} 
+                    alt={script.title}
+                    className="w-full h-full object-cover"
+                    style={{ imageRendering: 'pixelated' }}
+                  />
+                  {/* CRT glow overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-purple-500/20 via-transparent to-blue-500/20 mix-blend-screen" />
+                </div>
+              </div>
+
+              {/* "NOW SHOWING" Sign */}
+              <motion.div
+                className="absolute -top-6 left-1/2 -translate-x-1/2 bg-red-600 px-6 py-2 border-4 border-yellow-400 font-black text-white text-sm tracking-widest shadow-lg"
+                animate={{ y: [0, -5, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                ⭐ NOW SHOWING ⭐
+              </motion.div>
+            </motion.div>
+
+            {/* PLAYER SPRITE - PURE CUTOUT */}
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="relative"
+            >
+              {/* Pixel Art Container - NO BACKGROUND */}
+              <div className="relative flex flex-col items-center">
+                {/* Spotlight effect behind sprite */}
+                <motion.div
+                  className="absolute w-32 h-32 bg-yellow-400/30 rounded-full blur-3xl"
+                  animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
+                
+                {/* Player Sprite - Large, No Background Circle! */}
+                <motion.div 
+                  className="relative w-32 h-32 flex items-center justify-center"
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                  style={{ 
+                    filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.8)) drop-shadow(0 0 20px rgba(255,215,0,0.4))'
+                  }}
+                >
+                  <span className="text-8xl" style={{ imageRendering: 'pixelated' }}>
+                    🎭
+                  </span>
+                  
+                  {/* Sparkle particles */}
+                  <motion.div
+                    className="absolute -top-2 -right-2 text-3xl"
+                    animate={{ scale: [0, 1, 0], rotate: [0, 180, 360] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    ✨
+                  </motion.div>
+                </motion.div>
+
+                {/* Player Label - Arcade Style */}
+                <div className="mt-4 relative">
+                  <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-2 border-4 border-white font-black text-2xl text-white uppercase tracking-widest shadow-lg"
+                       style={{ imageRendering: 'pixelated' }}>
+                    PLAYER 1
+                  </div>
+                  <motion.div
+                    className="absolute -inset-1 border-2 border-yellow-400 rounded"
+                    animate={{ opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  />
+                </div>
+
+                {/* Player Stats - Pixel Bars */}
+                <div className="mt-4 space-y-2 w-full">
+                  <div className="flex items-center gap-2">
+                    <span className="text-yellow-400 font-bold text-sm uppercase w-16">Fame:</span>
+                    <div className="flex-1 h-4 bg-black border-2 border-white">
+                      <motion.div 
+                        className="h-full bg-gradient-to-r from-yellow-500 to-amber-500"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${fame}%` }}
+                        transition={{ duration: 1, delay: 0.5 }}
+                      />
+                    </div>
+                    <span className="text-white font-bold text-sm w-12">{fame}</span>
+                  </div>
                 </div>
               </div>
             </motion.div>
-          )}
-
-          {/* Director Section - vintage paper panel */}
-          <div className="relative bg-gradient-to-br from-[#f4e4c1] via-[#e8d5b7] to-[#d4c5a9] border-3 border-amber-700 rounded-xl p-5 shadow-[0_8px_16px_rgba(120,53,15,0.3),inset_0_1px_0_rgba(255,255,255,0.4)] overflow-hidden">
-            <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='nd'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23nd)' opacity='0.4'/%3E%3C/svg%3E")`, backgroundRepeat: 'repeat', backgroundSize: '80px 80px' }} />
-            <div className="flex items-start gap-5 relative z-10">
-              <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-amber-600 flex-shrink-0 shadow-[inset_0_2px_4px_rgba(139,69,19,0.15),0_4px_12px_rgba(120,53,15,0.25)] bg-[#e8d5b7] flex items-center justify-center">
-                {directorImgError ? (
-                  <span className="text-5xl" aria-hidden>🎬</span>
-                ) : (
-                  <img
-                    src={directorPortrait}
-                    alt="Director"
-                    className="w-full h-full object-cover"
-                    onError={() => setDirectorImgError(true)}
-                  />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-2xl">🎬</span>
-                  <span className="font-black text-sm text-amber-800 uppercase tracking-wide">Director</span>
-                </div>
-                <p className="text-xl font-black text-amber-900 mb-1">
-                  {generateDirectorName()}
-                </p>
-                <p className="text-xs text-amber-700 mb-3">
-                  Known for {script.genre.toLowerCase()} masterpieces
-                </p>
-                <div className="flex gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <span key={i} className="text-xl text-amber-600 drop-shadow-sm">
-                      {i < Math.round(script.directorReputation / 20) ? '⭐' : '☆'}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
           </div>
 
-          {/* Cast Section - vintage paper panel */}
-          <div className="relative bg-gradient-to-br from-[#f4e4c1] via-[#e8d5b7] to-[#d4c5a9] border-3 border-amber-700 rounded-xl p-5 shadow-[0_8px_16px_rgba(120,53,15,0.3),inset_0_1px_0_rgba(255,255,255,0.4)] overflow-hidden">
-            <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='nc'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23nc)' opacity='0.4'/%3E%3C/svg%3E")`, backgroundRepeat: 'repeat', backgroundSize: '80px 80px' }} />
-            <div className="flex items-start gap-5 relative z-10">
-              <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-amber-600 flex-shrink-0 shadow-[inset_0_2px_4px_rgba(139,69,19,0.15),0_4px_12px_rgba(120,53,15,0.25)] bg-[#e8d5b7] flex items-center justify-center">
-                {costarImgError ? (
-                  <span className="text-5xl" aria-hidden>🎭</span>
-                ) : (
-                  <img
-                    src={costarPortrait}
-                    alt="Co-star"
-                    className="w-full h-full object-cover"
-                    onError={() => setCostarImgError(true)}
+          {/* RIGHT - DETAILS */}
+          <div className="space-y-6">
+            
+            {/* Title - Retro Game Style */}
+            <motion.div
+              initial={{ x: 20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              <h1 className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-400 mb-2 uppercase tracking-tight leading-none"
+                  style={{ 
+                    textShadow: '4px 4px 0 rgba(0,0,0,0.8), 2px 2px 0 rgba(255,215,0,0.3)',
+                    imageRendering: 'pixelated' 
+                  }}>
+                {script.title}
+              </h1>
+              
+              {/* Pixel divider */}
+              <div className="flex gap-1 mt-3">
+                {[...Array(20)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    className="w-4 h-4 bg-yellow-400"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.3 + i * 0.03 }}
+                    style={{ imageRendering: 'pixelated' }}
                   />
-                )}
+                ))}
               </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-2xl">🎪</span>
-                  <span className="font-black text-sm text-amber-800 uppercase tracking-wide">Co-Star</span>
-                </div>
-                <p className="text-xl font-black text-amber-900 mb-1">
-                  {generateCoStarName()}
-                </p>
-                <p className="text-xs text-amber-700 mb-3">
-                  A rising star with massive appeal
-                </p>
-                <div className="text-sm text-amber-800 font-semibold">
-                  Popularity: <span className="text-amber-600 font-black">{script.coStarPopularity}/100</span>
-                </div>
-              </div>
-            </div>
-          </div>
 
-          {/* Industry Buzz with CLEAR risk */}
-          <div className={`border-3 rounded-xl p-4 shadow-md ${riskColors[script.riskProfile]}`}>
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">💬</span>
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-black text-sm uppercase tracking-wide">Industry Buzz</span>
-                  <div className={`px-3 py-1.5 rounded-full font-black text-xs flex items-center gap-1 shadow-md ${getRiskBadgeStyle(script.riskProfile)}`}>
-                    {getRiskIcon(script.riskProfile)}
-                    {script.riskProfile.toUpperCase()}
+              <p className="text-white/90 text-lg mt-4 leading-relaxed">
+                {script.synopsis}
+              </p>
+            </motion.div>
+
+            {/* Agent Advice - VHS Style */}
+            {advice && (
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="bg-gradient-to-r from-cyan-500 to-blue-500 border-4 border-white p-5 relative overflow-hidden"
+              >
+                <div className="absolute inset-0 opacity-20" 
+                     style={{
+                       backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 1px, white 1px, white 2px)'
+                     }} 
+                />
+                <div className="relative flex items-start gap-3">
+                  <motion.span 
+                    className="text-4xl"
+                    animate={{ rotate: [0, 10, -10, 0] }}
+                    transition={{ duration: 1, repeat: Infinity, repeatDelay: 2 }}
+                  >
+                    💡
+                  </motion.span>
+                  <div className="flex-1">
+                    <div className="font-black text-white text-sm uppercase mb-2 tracking-wider">
+                      ▶ AGENT MESSAGE
+                    </div>
+                    <p className="text-white font-semibold leading-relaxed">{advice}</p>
                   </div>
                 </div>
-                <p className="text-sm leading-relaxed mb-3 font-medium">
-                  {getBuzzText(script.riskProfile)}
-                </p>
-                <div className="flex gap-2">
-                  <span className="px-4 py-2 bg-green-700 text-white border-2 border-green-900 rounded-lg font-black text-sm shadow-lg">
-                    💰 ₹{script.payment}L
-                  </span>
+              </motion.div>
+            )}
+
+            {/* CHARACTERS - PURE SPRITE CUTOUTS */}
+            <div className="grid grid-cols-2 gap-6">
+              
+              {/* DIRECTOR SPRITE */}
+              <motion.div
+                initial={{ x: -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className={`${riskBg[script.riskProfile]} border-4 border-black p-6 relative overflow-hidden`}
+              >
+                <div className="absolute top-2 left-2 right-2 h-1 bg-black/20" />
+                
+                <div className="text-center">
+                  <div className="font-black text-xs text-black uppercase tracking-widest mb-3">
+                    🎬 DIRECTOR
+                  </div>
+                  
+                  {/* Director Sprite - NO BACKGROUND! */}
+                  <motion.div
+                    className="relative w-24 h-24 mx-auto mb-3"
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    style={{ 
+                      filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.6))'
+                    }}
+                  >
+                    <img 
+                      src={directorPortrait}
+                      alt="Director"
+                      className="w-full h-full object-contain"
+                      style={{ imageRendering: 'pixelated' }}
+                    />
+                  </motion.div>
+
+                  <p className="font-black text-black text-lg mb-2">
+                    {generateDirectorName()}
+                  </p>
+                  
+                  {/* Star Rating - Pixel Style */}
+                  <div className="flex justify-center gap-1 mb-2">
+                    {[...Array(5)].map((_, i) => (
+                      <motion.span
+                        key={i}
+                        className="text-2xl"
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ delay: 0.6 + i * 0.1, type: 'spring' }}
+                        style={{ imageRendering: 'pixelated' }}
+                      >
+                        {i < Math.round(script.directorReputation / 20) ? '⭐' : '☆'}
+                      </motion.span>
+                    ))}
+                  </div>
+                  
+                  <div className="font-bold text-black text-sm">
+                    REP: {script.directorReputation}/100
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* CO-STAR SPRITE */}
+              <motion.div
+                initial={{ x: 20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.6 }}
+                className={`${riskBg[script.riskProfile]} border-4 border-black p-6 relative overflow-hidden`}
+              >
+                <div className="absolute top-2 left-2 right-2 h-1 bg-black/20" />
+                
+                <div className="text-center">
+                  <div className="font-black text-xs text-black uppercase tracking-widest mb-3">
+                    🎭 CO-STAR
+                  </div>
+                  
+                  {/* Co-Star Sprite - NO BACKGROUND! */}
+                  <motion.div
+                    className="relative w-24 h-24 mx-auto mb-3"
+                    whileHover={{ scale: 1.1, rotate: -5 }}
+                    style={{ 
+                      filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.6))'
+                    }}
+                  >
+                    <img 
+                      src={costarPortrait}
+                      alt="Co-star"
+                      className="w-full h-full object-contain"
+                      style={{ imageRendering: 'pixelated' }}
+                    />
+                  </motion.div>
+
+                  <p className="font-black text-black text-lg mb-2">
+                    {generateCoStarName()}
+                  </p>
+                  
+                  {/* Popularity Bar - Pixel Style */}
+                  <div className="space-y-1">
+                    <div className="text-xs font-bold text-black uppercase">Popularity</div>
+                    <div className="h-3 bg-black border-2 border-black/30">
+                      <motion.div 
+                        className="h-full bg-gradient-to-r from-pink-500 to-purple-500"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${script.coStarPopularity}%` }}
+                        transition={{ duration: 1, delay: 0.8 }}
+                        style={{ imageRendering: 'pixelated' }}
+                      />
+                    </div>
+                    <div className="font-bold text-black text-sm">
+                      {script.coStarPopularity}%
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* STATS PANEL - Arcade Style */}
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.7 }}
+              className="bg-black border-4 border-yellow-400 p-6"
+            >
+              <div className="grid grid-cols-3 gap-4 text-center">
+                
+                {/* Payment */}
+                <div>
+                  <div className="text-green-400 font-black text-3xl mb-1">
+                    ₹{script.payment}L
+                  </div>
+                  <div className="text-white/60 text-xs uppercase tracking-wider font-bold">
+                    Payment
+                  </div>
+                </div>
+
+                {/* Risk Meter */}
+                <div>
+                  <div className={`text-3xl font-black mb-1 bg-gradient-to-r ${riskColors[script.riskProfile]} bg-clip-text text-transparent`}>
+                    {getRiskIcon(script.riskProfile)}
+                  </div>
+                  <div className="text-white/60 text-xs uppercase tracking-wider font-bold">
+                    {script.riskProfile}
+                  </div>
+                </div>
+
+                {/* Certification */}
+                <div>
+                  <div className={`text-3xl font-black mb-1 ${getCertColor(script.certification)}`}>
+                    {script.certification}
+                  </div>
+                  <div className="text-white/60 text-xs uppercase tracking-wider font-bold">
+                    Rating
+                  </div>
                 </div>
               </div>
+            </motion.div>
+
+            {/* ACTION BUTTONS - MARQUEE STYLE */}
+            <div className="grid grid-cols-2 gap-4 pt-4">
+              
+              {/* ACCEPT BUTTON */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onAccept}
+                className="relative bg-gradient-to-b from-green-400 to-green-600 border-4 border-white py-6 font-black text-2xl text-white uppercase tracking-widest shadow-[0_8px_0_rgba(0,100,0,1)] hover:shadow-[0_4px_0_rgba(0,100,0,1)] active:translate-y-2 transition-all overflow-hidden group"
+              >
+                {/* Marquee lights */}
+                <div className="absolute top-0 left-0 right-0 flex justify-around p-1">
+                  {[...Array(8)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="w-2 h-2 bg-yellow-300 rounded-full"
+                      animate={{ opacity: [1, 0.3, 1] }}
+                      transition={{ duration: 1, delay: i * 0.125, repeat: Infinity }}
+                    />
+                  ))}
+                </div>
+
+                <span className="relative" style={{ textShadow: '2px 2px 0 rgba(0,0,0,0.5)' }}>
+                  ▶ ACCEPT
+                </span>
+
+                {/* Bottom lights */}
+                <div className="absolute bottom-0 left-0 right-0 flex justify-around p-1">
+                  {[...Array(8)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="w-2 h-2 bg-yellow-300 rounded-full"
+                      animate={{ opacity: [1, 0.3, 1] }}
+                      transition={{ duration: 1, delay: i * 0.125 + 0.5, repeat: Infinity }}
+                    />
+                  ))}
+                </div>
+              </motion.button>
+
+              {/* REJECT BUTTON */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onReject}
+                className="relative bg-gradient-to-b from-red-400 to-red-600 border-4 border-white py-6 font-black text-2xl text-white uppercase tracking-widest shadow-[0_8px_0_rgba(100,0,0,1)] hover:shadow-[0_4px_0_rgba(100,0,0,1)] active:translate-y-2 transition-all overflow-hidden"
+              >
+                {/* Marquee lights */}
+                <div className="absolute top-0 left-0 right-0 flex justify-around p-1">
+                  {[...Array(8)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="w-2 h-2 bg-blue-300 rounded-full"
+                      animate={{ opacity: [1, 0.3, 1] }}
+                      transition={{ duration: 1, delay: i * 0.125, repeat: Infinity }}
+                    />
+                  ))}
+                </div>
+
+                <span className="relative" style={{ textShadow: '2px 2px 0 rgba(0,0,0,0.5)' }}>
+                  ✖ REJECT
+                </span>
+
+                <div className="absolute bottom-0 left-0 right-0 flex justify-around p-1">
+                  {[...Array(8)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="w-2 h-2 bg-blue-300 rounded-full"
+                      animate={{ opacity: [1, 0.3, 1] }}
+                      transition={{ duration: 1, delay: i * 0.125 + 0.5, repeat: Infinity }}
+                    />
+                  ))}
+                </div>
+              </motion.button>
             </div>
-          </div>
 
-          {/* Warning with paper texture */}
-          <div className="relative bg-amber-200 border-3 border-amber-800 rounded-xl p-4 text-center shadow-md overflow-hidden">
-            <div className="absolute inset-0 opacity-20"
-              style={{
-                backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(139,69,19,0.1) 10px, rgba(139,69,19,0.1) 20px)`
-              }}
-            />
-            <p className="relative text-sm text-amber-900 font-bold mb-1">
-              ⚠️ Think carefully. There won't always be a second chance.
+            {/* Keyboard Hint */}
+            <p className="text-center text-white/50 text-sm font-bold uppercase tracking-wider">
+              SPACE = Accept • ESC = Reject
             </p>
-            <p className="relative text-xs text-amber-700">
-              SPACE=Accept • ESC=Decline
-            </p>
-          </div>
-
-          {/* Action Buttons - LARGER (no hover/tilt for performance) */}
-          <div className="grid grid-cols-2 gap-4">
-            <button
-              onClick={onAccept}
-              className="bg-gradient-to-b from-green-400 to-green-600 text-white font-black py-5 px-5 rounded-xl border-4 border-green-800 shadow-[0_8px_0_rgb(22,101,52),inset_0_1px_0_rgba(255,255,255,0.3)] active:translate-y-2 active:shadow-[0_2px_0_rgb(22,101,52)] transition-transform flex items-center justify-center gap-2 touch-manipulation min-h-[64px] text-lg"
-            >
-              <span className="text-2xl">❤️</span>
-              <span>Accept Role</span>
-            </button>
-            
-            <button
-              onClick={onReject}
-              className="bg-gradient-to-b from-amber-200 to-amber-300 text-amber-900 font-black py-5 px-5 rounded-xl border-4 border-amber-800 shadow-[0_8px_0_rgb(120,53,15),inset_0_1px_0_rgba(255,255,255,0.3)] active:translate-y-2 active:shadow-[0_2px_0_rgb(120,53,15)] transition-transform touch-manipulation min-h-[64px] text-lg"
-            >
-              Pass on Script
-            </button>
           </div>
         </div>
+      </div>
+
+      {/* FILM STRIP BORDER - BOTTOM */}
+      <div className="relative h-8 bg-black border-4 border-black rounded-b-2xl overflow-hidden">
+        <motion.div 
+          className="absolute inset-0 flex items-center"
+          animate={{ x: [0, -40] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+        >
+          {[...Array(30)].map((_, i) => (
+            <div key={i} className="w-6 h-6 bg-white mx-1 flex-shrink-0 rounded-sm" />
+          ))}
+        </motion.div>
       </div>
     </motion.div>
   );
 }
 
 // Helper functions
-function determineRecommendation(script: Script, fame: number, careerPhase: string): boolean {
+function determineRecommendation(script: any, fame: number, careerPhase: string): boolean {
   if (careerPhase === 'Newcomer' && script.riskProfile === 'Safe') return true;
   if (careerPhase === 'Rising Star' && script.directorReputation > 70) return true;
-  if (careerPhase === 'Established' && script.riskProfile === 'Balanced' && script.payment > 100) return true;
   return false;
 }
 
-function getContextualAdvice(script: Script, fame: number, history: any[]): string | null {
+function getContextualAdvice(script: any, fame: number, history: any[]): string | null {
   if (fame < 20 && script.riskProfile === 'Risky') {
-    return "Your agent warns: This risky project could hurt your budding career. Consider safer options.";
+    return "⚠️ WARNING: This risky project could damage your reputation. Your agent recommends safer options.";
   }
   if (fame > 60 && script.directorReputation > 80) {
-    return "This acclaimed director could elevate your status to superstar level!";
+    return "⭐ OPPORTUNITY: This acclaimed director could elevate you to superstar status!";
   }
   if (script.payment > 150) {
-    return "This is one of the highest-paying offers you've received. Financial security awaits!";
+    return "💰 HIGH PAYOUT: One of your best-paying offers. Financial security awaits!";
   }
   return null;
+}
+
+function getGenreEmoji(genre: string): string {
+  const emojis: Record<string, string> = {
+    Action: '⚔️', Romance: '💕', Drama: '🎭', Comedy: '🎪',
+    Thriller: '🔪', Horror: '👻', Social: '📢', Biopic: '📖'
+  };
+  return emojis[genre] || '🎬';
 }
 
 function getRiskIcon(risk: string): string {
   return { Safe: '✅', Balanced: '⚖️', Risky: '⚠️' }[risk] || '🎯';
 }
 
-function getRiskBadgeStyle(risk: string): string {
-  return { Safe: 'bg-green-600 text-white', Balanced: 'bg-yellow-600 text-white', Risky: 'bg-red-600 text-white' }[risk] || 'bg-gray-600 text-white';
+function getCertColor(cert: string): string {
+  return {
+    U: 'text-green-400',
+    'U-A': 'text-yellow-400',
+    A: 'text-red-400'
+  }[cert] || 'text-white';
 }
 
 function generateDirectorName(): string {
-  const names = ['Raj Mehra', 'Vikram Singh', 'Arjun Kapoor', 'Karan Sharma', 'Sanjay Kumar', 'Rohit Chopra', 'Anurag Kashyap'];
+  const names = ['Raj Kapoor', 'Guru Dutt', 'Satyajit Ray', 'Mani Ratnam', 'S.S. Rajamouli'];
   return names[Math.floor(Math.random() * names.length)];
 }
 
 function generateCoStarName(): string {
-  const names = ['Priya Kapoor', 'Ananya Sharma', 'Ranbir Malhotra', 'Alia Verma', 'Deepika Rao', 'Vicky Khanna'];
+  const names = ['Madhubala', 'Nargis', 'Waheeda Rehman', 'Deepika Padukone', 'Alia Bhatt'];
   return names[Math.floor(Math.random() * names.length)];
 }
 
-function getBuzzText(risk: Script['riskProfile']): string {
-  const buzz = {
-    Safe: 'Industry insiders predict a steady performer with broad appeal.',
-    Balanced: 'Critics are intrigued. Audiences buzz with curiosity.',
-    Risky: 'A bold gamble that could redefine your career—or derail it.',
-  };
-  return buzz[risk];
-}

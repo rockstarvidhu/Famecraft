@@ -1,4 +1,5 @@
-import { AnimatePresence, motion, PanInfo } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
+import type { PanInfo } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import ScriptCard from '../components/ScriptCard';
 import { useEffect, useState } from 'react';
@@ -7,7 +8,6 @@ import { toast, Toaster } from 'react-hot-toast';
 export default function ScriptSelectionScreen() {
   const { currentScripts, acceptScript, rejectScript, generateNewScripts, fame } = useGameStore();
   const [isLoading, setIsLoading] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(0);
 
   // Force script generation if none exist
   useEffect(() => {
@@ -75,8 +75,8 @@ export default function ScriptSelectionScreen() {
     }
   };
 
-  // Mobile swipe handling
-  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo, scriptId: string) => {
+  // Mobile swipe handling - FIXED with type-only import
+  const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo, scriptId: string) => {
     const swipeThreshold = 100;
     
     if (info.offset.x > swipeThreshold) {
@@ -126,8 +126,6 @@ export default function ScriptSelectionScreen() {
     );
   }
 
-  const currentScript = currentScripts[currentIndex];
-
   return (
     <>
       {/* Toast Container */}
@@ -164,36 +162,31 @@ export default function ScriptSelectionScreen() {
           <p className="text-xl text-amber-900 font-semibold">
             A new script has landed on your desk.
           </p>
-          <p className="text-sm text-amber-700 mt-1">
+          <p className="text-sm text-amber-700 mt-1 md:block hidden">
             Swipe right to accept • Swipe left to decline
           </p>
         </motion.div>
 
         {/* Script cards with swipe support */}
         <div className="space-y-6">
-          <AnimatePresence mode="wait">
-            {currentScript && (
+          <AnimatePresence mode="popLayout">
+            {currentScripts.map((script) => (
               <motion.div
-                key={currentScript.id}
+                key={script.id}
                 drag="x"
                 dragConstraints={{ left: 0, right: 0 }}
                 dragElastic={0.7}
-                onDragEnd={(e, info) => handleDragEnd(e, info, currentScript.id)}
-                whileDrag={{ scale: 1.05, rotate: info => info.offset.x / 20 }}
+                onDragEnd={(e, info) => handleDragEnd(e, info, script.id)}
+                whileDrag={{ scale: 1.02 }}
               >
                 <ScriptCard
-                  script={currentScript}
-                  onAccept={() => handleAccept(currentScript.id)}
-                  onReject={() => handleReject(currentScript.id)}
+                  script={script}
+                  onAccept={() => handleAccept(script.id)}
+                  onReject={() => handleReject(script.id)}
                 />
               </motion.div>
-            )}
+            ))}
           </AnimatePresence>
-          
-          {/* Script counter - Mobile friendly */}
-          <div className="text-center text-sm text-amber-800">
-            Script {currentIndex + 1} of {currentScripts.length}
-          </div>
         </div>
 
         {/* Warning banner with fade in */}
