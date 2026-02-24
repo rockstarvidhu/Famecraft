@@ -1,159 +1,148 @@
-// src/game/script  Generator.ts - COMPLETE FIX
+// src/game/scriptGenerator.ts
 
-import type { Script, Genre, CareerPhase, Certification, RiskProfile } from './types';
+import type { Script, CareerPhase, Genre, Certification, RiskProfile } from './types';
 
-// All Indian film titles by genre - NO EXTERNAL IMPORTS NEEDED
 const FILM_TITLES: Record<Genre, string[]> = {
   Action: [
-    'Mumbai Nights', 'The Last Stand', 'Border Patrol', 'Warrior\'s Path',
-    'Fists of Justice', 'Highway Hero', 'The Encounter', 'Gangster Wars',
-    'Mission Kashmir', 'The Avenger', 'Street Fighter', 'Blood Brothers'
+    'Toofan', 'Sher Khan', 'Iron Fist', 'Phantom Strike', 'Blood and Steel',
+    'The Last Warrior', 'Rage of the Tiger', 'Thunder Road', 'Veer',
   ],
   Romance: [
-    'Love in Paris', 'Dil Se', 'Eternal Promise', 'First Love',
-    'Monsoon Romance', 'Heartbeat', 'Pyaar Ka Safar', 'Love Story',
-    'Kabhi Khushi', 'Mohabbatein', 'Dilwale', 'Jab We Met'
+    'Dil Mera', 'Pyaar Ki Raah', 'Ek Mulaqat', 'Saathi', 'Dil Se Dil Tak',
+    'Mohabbat', 'Tu Hi Meri Duniya', 'Pehli Nazar', 'Humsafar',
   ],
   Drama: [
-    'The Last Letter', 'Broken Dreams', 'Family Ties', 'The Journey',
-    'Zindagi Gulzar Hai', 'Masaan', 'Court', 'The Lunchbox',
-    'Piku', 'October', 'Ankhon Dekhi', 'Ship of Theseus'
+    'The Verdict', 'Broken Mirrors', 'Aasman Se Girte', 'Zindagi',
+    'The Long Road Home', 'Neeli Aankhein', 'Gehri Khaai', 'Andheron Mein',
   ],
   Comedy: [
-    'Hera Pheri Returns', 'Golmaal Again', 'Welcome Back', 'Hungama House',
-    'Dhamaal 3', 'Bhool Bhulaiyaa', 'Chup Chup Ke', 'De Dana Dan',
-    'Phir Hera Pheri', 'Total Dhamaal', 'Andaz Apna Apna 2', 'Hulchul'
+    'Pagal Duniya', 'Ulta Pulta', 'Jugaad Junction', 'Nautanki',
+    'Haste Raho', 'Dhoom Machao', 'Masti Ka Mausam', 'Comedy Express',
   ],
   Thriller: [
-    'The Shadow', 'Silent Witness', 'Dark Secrets', 'The Chase',
-    'Kahaani 2', 'Drishyam Returns', 'Talaash', 'Badla',
-    'Ittefaq', 'A Wednesday Returns', 'Ugly Truth', 'Trapped'
+    'Shadow Protocol', 'The Mole', 'Dark Web', 'Double Cross',
+    'Conspiracy', 'Raaz-e-Zindagi', 'Silent Witness', 'The Informant',
   ],
   Horror: [
-    'Haunted Mansion', 'The Conjuring House', 'Bhool Bhulaiyaa 3', 'Stree Returns',
-    'Pari 2', 'Tumbbad Legacy', 'The Ghost', 'Raaz Reboot',
-    '1920: Evil Returns', 'Ek Thi Daayan 2', 'Pizza Returns', 'Phobia 2'
+    'Haunted Haveli', 'Bhoot Bangla', 'The Cursed Well', 'Dark Rituals',
+    'Raat Ka Darr', 'Chudail', 'The Forgotten Temple', 'Kaali Raat',
   ],
   Social: [
-    'The Revolution', 'Article 370', 'Pink Returns', 'Toilet Revolution',
-    'Pad Man 2', 'Bala', 'Ujda Chaman', 'Shubh Mangal',
-    'Jolly LLB 3', 'Newton Returns', 'Court 2', 'Jai Bhim'
+    'Awaaz Uthao', 'Change Makers', 'The Revolution', 'Breaking Chains',
+    'Haq Ki Ladai', 'Inquilab', 'Samaj ka Darpan', 'Naya Savera',
   ],
   Biopic: [
-    'The Legend', 'Rising Star', 'True Hero', 'Against All Odds',
-    'Saina', 'Mary Kom Returns', 'Bhaag Milkha Bhaag 2', 'Dangal',
-    'MS Dhoni: The Journey', 'Neerja 2', 'Sanju Returns', 'Thackeray'
+    'Legend', 'The Iron Will', 'Unbreakable', 'Born to Win',
+    'Champion', 'The Last Stand', 'Immortal', 'Sahib',
   ],
 };
 
-const SETTINGS = [
-  'contemporary Mumbai',
-  'rural Punjab',
-  'the heart of Delhi',
-  'coastal Goa',
-  'historic Rajasthan',
-  'modern Bangalore',
-  'the streets of Kolkata',
-  'serene Kerala',
-  'bustling Hyderabad',
-  'picturesque Kashmir',
-  'small-town India',
-  'metropolitan Chennai'
-];
+const SYNOPSES: Record<Genre, string[]> = {
+  Action: [
+    'An ex-soldier uncovers a government conspiracy and must fight his way to the truth.',
+    'A vigilante cop takes on a crime empire that has corrupted the entire city.',
+    'Two rival warriors are forced to team up against a common enemy.',
+  ],
+  Romance: [
+    'Two strangers meet on a train journey and slowly fall hopelessly in love.',
+    'A musician and a doctor navigate their busy lives and growing feelings.',
+    'Old flames reunite at a wedding, forcing them to confront unfinished business.',
+  ],
+  Drama: [
+    'A working-class family faces a devastating crisis that tests every bond they have.',
+    'A lawyer takes on an impossible case that challenges his own moral compass.',
+    'A young woman returns to her village and uncovers long-buried secrets.',
+  ],
+  Comedy: [
+    'Three bumbling friends accidentally get tangled in a heist gone hilariously wrong.',
+    'A strict father tries desperately to sabotage his daughter\'s unconventional wedding.',
+    'A small-town boy moves to Mumbai and navigates city life with comedic results.',
+  ],
+  Thriller: [
+    'A journalist receives anonymous tips that lead her deep into a dangerous conspiracy.',
+    'A forensic analyst discovers that the killer she\'s hunting may be someone she trusts.',
+    'A witness to a murder goes into hiding, but the past refuses to stay buried.',
+  ],
+  Horror: [
+    'A family moves into a sprawling old haveli — and begins experiencing the unthinkable.',
+    'A group of friends spend a night in a supposedly cursed fort. Not all of them leave.',
+    'A small mountain village is gripped by an ancient evil that awakens every decade.',
+  ],
+  Social: [
+    'A schoolteacher in rural India fights to bring education to an entire generation.',
+    'A young activist battles powerful corporations to protect her community\'s land.',
+    'An ordinary man takes a stand against systemic corruption — and pays a heavy price.',
+  ],
+  Biopic: [
+    'The extraordinary true story of a champion who defied every odd stacked against them.',
+    'A visionary artist whose greatest struggle was not recognition, but acceptance.',
+    'The untold story of a freedom fighter who history nearly forgot.',
+  ],
+};
 
-const CERTIFICATIONS: Certification[] = ['U', 'U-A', 'A'];
-
-export function generateScripts(careerPhase: CareerPhase, fame: number): Script[] {
-  const scripts: Script[] = [];
-
-  // Always generate 3 scripts
-  for (let i = 0; i < 3; i++) {
-    scripts.push(generateSingleScript(careerPhase, fame));
-  }
-
-  return scripts;
+function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function generateSingleScript(careerPhase: CareerPhase, fame: number): Script {
+function generateScript(phase: CareerPhase, fame: number, index: number): Script {
   const genres: Genre[] = ['Action', 'Romance', 'Drama', 'Comedy', 'Thriller', 'Horror', 'Social', 'Biopic'];
-  const genre = genres[Math.floor(Math.random() * genres.length)];
-  
-  // Get titles for this genre
-  const genreTitles = FILM_TITLES[genre];
-  const title = genreTitles[Math.floor(Math.random() * genreTitles.length)];
+  const genre = pickRandom(genres);
 
-  // Base stats influenced by career phase
-  const baseDirectorRep = getBaseDirectorRep(careerPhase, fame);
-  const baseCostarPop = getBaseCostarPop(careerPhase, fame);
-  const payment = getPayment(careerPhase, fame);
-  const riskProfile = determineRiskProfile();
+  // Risk profile weighted by career phase
+  const riskWeights: Record<CareerPhase, RiskProfile[]> = {
+    Newcomer:     ['Safe', 'Safe', 'Balanced'],
+    'Rising Star': ['Safe', 'Balanced', 'Balanced', 'Risky'],
+    Established:  ['Balanced', 'Balanced', 'Risky'],
+    Superstar:    ['Balanced', 'Risky', 'Risky'],
+    Veteran:      ['Safe', 'Balanced', 'Risky'],
+  };
+  const riskProfile = pickRandom(riskWeights[phase]);
 
-  const setting = SETTINGS[Math.floor(Math.random() * SETTINGS.length)];
-  const certification = CERTIFICATIONS[Math.floor(Math.random() * CERTIFICATIONS.length)];
+  // Payment scales with fame and risk
+  const basePayment = 20 + Math.round(fame * 1.5);
+  const riskMultiplier = { Safe: 0.8, Balanced: 1.0, Risky: 1.4 }[riskProfile];
+  const payment = Math.round(basePayment * riskMultiplier * (0.8 + Math.random() * 0.4));
+
+  // Director reputation
+  const dirBase = { Safe: 40, Balanced: 60, Risky: 75 }[riskProfile];
+  const directorReputation = Math.min(100, dirBase + Math.round(Math.random() * 30) - 10);
+
+  // Co-star popularity
+  const coStarPopularity = 20 + Math.round(Math.random() * 70);
+
+  // Certification
+  const certOptions: Record<RiskProfile, Certification[]> = {
+    Safe:     ['U', 'U', 'U-A'],
+    Balanced: ['U-A', 'U-A', 'A'],
+    Risky:    ['U-A', 'A', 'A'],
+  };
+  const certification = pickRandom(certOptions[riskProfile]);
+
+  const usedTitles = new Set<string>();
+  let title = pickRandom(FILM_TITLES[genre]);
+  // Avoid duplicate titles in same batch
+  while (usedTitles.has(title) && usedTitles.size < FILM_TITLES[genre].length) {
+    title = pickRandom(FILM_TITLES[genre]);
+  }
+  usedTitles.add(title);
 
   return {
-    id: `script-${Date.now()}-${Math.random()}`,
+    id: `script-${Date.now()}-${index}`,
     title,
     genre,
-    synopsis: `A ${genre.toLowerCase()} story set in ${setting}.`,
-    directorReputation: baseDirectorRep,
-    coStarPopularity: baseCostarPop,
+    synopsis: pickRandom(SYNOPSES[genre]),
+    directorReputation,
+    coStarPopularity,
     payment,
     certification,
     riskProfile,
-    // NO musicDirectorPopularity - removed
   };
 }
 
-function getBaseDirectorRep(careerPhase: CareerPhase, fame: number): number {
-  const base = {
-    Newcomer: 40,
-    'Rising Star': 55,
-    Established: 70,
-    Superstar: 85,
-    Veteran: 75,
-  };
-
-  const phaseBase = base[careerPhase];
-  const variance = Math.floor(Math.random() * 20) - 10; // -10 to +10
-  return Math.max(30, Math.min(95, phaseBase + variance + Math.floor(fame * 0.2)));
+export function generateScripts(phase: CareerPhase, fame: number): Script[] {
+  return [
+    generateScript(phase, fame, 0),
+    generateScript(phase, fame, 1),
+    generateScript(phase, fame, 2),
+  ];
 }
-
-function getBaseCostarPop(careerPhase: CareerPhase, fame: number): number {
-  const base = {
-    Newcomer: 35,
-    'Rising Star': 50,
-    Established: 65,
-    Superstar: 80,
-    Veteran: 70,
-  };
-
-  const phaseBase = base[careerPhase];
-  const variance = Math.floor(Math.random() * 20) - 10;
-  return Math.max(25, Math.min(95, phaseBase + variance + Math.floor(fame * 0.15)));
-}
-
-function getPayment(careerPhase: CareerPhase, fame: number): number {
-  const base = {
-    Newcomer: 30,
-    'Rising Star': 60,
-    Established: 120,
-    Superstar: 200,
-    Veteran: 150,
-  };
-
-  const phaseBase = base[careerPhase];
-  const fameBonus = Math.floor(fame * 0.5);
-  const variance = Math.floor(Math.random() * 30) - 15;
-  
-  return Math.max(20, phaseBase + fameBonus + variance);
-}
-
-function determineRiskProfile(): RiskProfile {
-  const rand = Math.random();
-  if (rand < 0.4) return 'Safe';
-  if (rand < 0.8) return 'Balanced';
-  return 'Risky';
-}
-
-

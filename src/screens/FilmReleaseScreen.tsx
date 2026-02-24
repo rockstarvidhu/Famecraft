@@ -1,205 +1,186 @@
+// src/screens/FilmReleaseScreen.tsx
 import { motion } from 'framer-motion';
-import { useGameStore } from '../store/gameStore';
 import { useEffect } from 'react';
+import { useGameStore } from '../store/gameStore';
+import VintageOverlay from '../components/VintageOverlay';
+import { useScreenShake } from '../hooks/useScreenShake';
+
+const C = {
+  parchLight:'#F2E4C4', parchBase:'#E8D5A8', parchMid:'#D9C48E',
+  parchDark:'#CCB47A', parchDeep:'#B89A60',
+  ink:'#1E0E04', border:'#8B5A2B', borderDark:'#5C3410',
+  sepia:'#5C3D1E', faded:'#7A6248', gold:'#B8860B',
+};
+const NOISE = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.88' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.32 0 0 0 0 0.22 0 0 0 0 0.10 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E")`;
 
 export default function FilmReleaseScreen() {
-  const { history, currentYear, advanceYear } = useGameStore();
-  
-  // Get the most recent film
+  const { history, advanceYear } = useGameStore();
   const latestFilm = history[history.length - 1];
   
-  useEffect(() => {
-    // Auto-advance after 5 seconds
-    const timer = setTimeout(() => {
-      advanceYear();
-    }, 5000);
-    
-    return () => clearTimeout(timer);
-  }, [advanceYear]);
-
+  // ✨ JUICE: Screen shake hook
+  const { shake } = useScreenShake();
+  
   if (!latestFilm) return null;
 
   const { filmTitle, outcome } = latestFilm;
-  const { boxOfficeMultiplier, criticsScore, audienceScore, fameChange, wealthChange } = outcome;
-
-  // Determine box office category
-  let boxOfficeCategory = 'DISASTER';
-  let boxOfficeColor = 'text-red-600';
-  let boxOfficeEmoji = '💀';
+  const isHit = outcome.boxOfficeMultiplier >= 1.5;
+  const isFlop = outcome.boxOfficeMultiplier < 0.8;
   
-  if (boxOfficeMultiplier >= 2.5) {
-    boxOfficeCategory = 'BLOCKBUSTER';
-    boxOfficeColor = 'text-green-600';
-    boxOfficeEmoji = '🎉';
-  } else if (boxOfficeMultiplier >= 1.5) {
-    boxOfficeCategory = 'SUPERHIT';
-    boxOfficeColor = 'text-green-500';
-    boxOfficeEmoji = '🎊';
-  } else if (boxOfficeMultiplier >= 1.0) {
-    boxOfficeCategory = 'HIT';
-    boxOfficeColor = 'text-blue-600';
-    boxOfficeEmoji = '✨';
-  } else if (boxOfficeMultiplier >= 0.7) {
-    boxOfficeCategory = 'AVERAGE';
-    boxOfficeColor = 'text-yellow-600';
-    boxOfficeEmoji = '😐';
-  } else if (boxOfficeMultiplier >= 0.5) {
-    boxOfficeCategory = 'FLOP';
-    boxOfficeColor = 'text-orange-600';
-    boxOfficeEmoji = '😞';
-  }
+  const resultEmoji = isHit ? '🎉' : isFlop ? '😔' : '👍';
+  const resultLabel = isHit ? 'BLOCKBUSTER HIT!' : isFlop ? 'Box Office Flop' : 'Moderate Success';
+  const resultColor = isHit ? C.gold : isFlop ? '#8B1A0A' : C.sepia;
+
+  const wealthFmt = (v:number) => v >= 100 ? `₹${(v/100).toFixed(1)}Cr` : `₹${v}L`;
+
+  // ✨ JUICE: Shake screen on mount based on result
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (isHit) {
+        shake('large'); // BIG SHAKE for hits!
+      } else if (isFlop) {
+        shake('small'); // Small sad shake
+      } else {
+        shake('medium'); // Medium for moderate
+      }
+    }, 300); // Delay slightly so screen loads first
+    
+    return () => clearTimeout(timer);
+  }, []); // Only run once on mount
 
   return (
-    <div className="space-y-6">
-      {/* Film Release Banner */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative"
-      >
-        <div className="bg-gradient-to-r from-red-600 via-red-500 to-red-600 border-y-4 border-red-800 shadow-lg">
-          <div className="max-w-4xl mx-auto py-3 px-6">
-            <h2 className="text-2xl font-bold text-white text-center tracking-wide">
-              🎬 FILM RELEASED - {currentYear}
-            </h2>
-          </div>
-        </div>
-        <div className="absolute -left-4 top-0 w-8 h-full bg-red-600 border-l-4 border-red-800 transform -skew-x-12" />
-        <div className="absolute -right-4 top-0 w-8 h-full bg-red-600 border-r-4 border-red-800 transform skew-x-12" />
-      </motion.div>
+    <div style={{ maxWidth: 640, margin: '0 auto' }}>
+      <motion.div initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }}
+        transition={{ duration:0.3 }}
+        style={{
+          position:'relative', overflow:'hidden',
+          background:`${NOISE}, linear-gradient(160deg,${C.parchLight} 0%,${C.parchBase} 50%,${C.parchMid} 100%)`,
+          backgroundBlendMode:'multiply,normal',
+          border:`2.5px solid ${C.border}`, borderRadius:3,
+          boxShadow:`2px 2px 0 ${C.borderDark}, 5px 5px 14px rgba(30,14,4,0.35)`,
+          fontFamily:"'Crimson Text','Lora',Georgia,serif",
+        }}>
+        <VintageOverlay stainStrength={0.8} stains={['tl','br']} />
 
-      {/* Main Results Card - vintage paper with grain */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.2 }}
-        className="relative bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 border-4 border-amber-900 rounded-2xl p-8 shadow-[0_8px_0_rgba(120,53,15,0.4)] max-w-3xl mx-auto overflow-hidden"
-      >
-        {/* Paper texture - high opacity to match reference */}
-        <div className="absolute inset-0 opacity-75 pointer-events-none" style={{
-          backgroundImage: `repeating-linear-gradient(0deg, rgba(139,69,19,0.08) 0px, transparent 1px, transparent 2px, rgba(139,69,19,0.08) 3px), repeating-linear-gradient(90deg, rgba(139,69,19,0.08) 0px, transparent 1px, transparent 2px, rgba(139,69,19,0.08) 3px)`
-        }} />
-        {/* Film grain overlay */}
-        <div className="absolute inset-0 opacity-50 pointer-events-none mix-blend-overlay" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.5'/%3E%3C/svg%3E")`,
-          backgroundRepeat: 'repeat',
-          backgroundSize: '200px 200px'
-        }} />
-        {/* Film Title */}
-        <div className="relative z-10 text-center mb-6">
-          <h3 className="text-4xl font-bold text-amber-900 mb-2">{filmTitle}</h3>
-          <div className="h-1 w-32 bg-amber-600 mx-auto rounded-full"></div>
+        {/* Window title bar */}
+        <div style={{ background:`linear-gradient(180deg,${C.parchMid},${C.parchDark})`,
+                      borderBottom:`2px solid ${C.border}`, padding:'5px 10px',
+                      display:'flex', alignItems:'center', gap:6 }}>
+          {['#CC3333','#CCAA22','#33AA33'].map((bg,i)=>(
+            <div key={i} style={{ width:9, height:9, borderRadius:'50%', background:bg, border:'1px solid rgba(0,0,0,0.3)' }}/>
+          ))}
+          <span style={{ flex:1, textAlign:'center', fontFamily:"'Libre Baskerville',serif",
+                        fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.12em', color:C.ink }}>
+            🎬  Box Office Results
+          </span>
         </div>
 
-        {/* Box Office Result - BIG */}
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.5, type: 'spring' }}
-          className="relative z-10 text-center mb-8"
-        >
-          <div className="text-6xl mb-2">{boxOfficeEmoji}</div>
-          <div className={`text-5xl font-black ${boxOfficeColor} mb-2`}>
-            {boxOfficeCategory}
-          </div>
-          <div className="text-lg text-amber-800">
-            Box Office: {boxOfficeMultiplier.toFixed(1)}x multiplier
-          </div>
-        </motion.div>
+        <div style={{ padding:'20px 24px', position:'relative', zIndex:2 }}>
 
-        {/* Scores Grid */}
-        <div className="relative z-10 grid grid-cols-2 gap-4 mb-6">
-          {/* Critics Score */}
-          <motion.div
-            initial={{ x: -50, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.7 }}
-            className="bg-amber-100 border-3 border-amber-700 rounded-lg p-4"
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-2xl">📰</span>
-              <span className="font-bold text-amber-900">CRITICS</span>
+          {/* Film title */}
+          <div style={{ textAlign:'center', marginBottom:16 }}>
+            <div style={{ fontFamily:"'IM Fell English',Georgia,serif", fontSize:24, fontWeight:700,
+                          color:C.ink, lineHeight:1.2, marginBottom:6 }}>
+              "{filmTitle}"
             </div>
-            <div className="text-4xl font-black text-amber-900">
-              {criticsScore}
-              <span className="text-xl text-amber-700">/100</span>
-            </div>
-            <div className="flex gap-0.5 mt-2">
-              {[...Array(5)].map((_, i) => (
-                <span key={i} className="text-xl text-yellow-500">
-                  {i < Math.round(criticsScore / 20) ? '⭐' : '☆'}
-                </span>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Audience Score */}
-          <motion.div
-            initial={{ x: 50, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.7 }}
-            className="bg-amber-100 border-3 border-amber-700 rounded-lg p-4"
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-2xl">🎭</span>
-              <span className="font-bold text-amber-900">AUDIENCE</span>
-            </div>
-            <div className="text-4xl font-black text-amber-900">
-              {audienceScore}
-              <span className="text-xl text-amber-700">/100</span>
-            </div>
-            <div className="flex gap-0.5 mt-2">
-              {[...Array(5)].map((_, i) => (
-                <span key={i} className="text-xl text-yellow-500">
-                  {i < Math.round(audienceScore / 20) ? '⭐' : '☆'}
-                </span>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Career Impact */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.9 }}
-          className="relative z-10 bg-gradient-to-r from-purple-100 to-pink-100 border-3 border-purple-700 rounded-lg p-4"
-        >
-          <div className="font-bold text-purple-900 mb-3 text-center">CAREER IMPACT</div>
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <div>
-              <div className="text-sm text-purple-700 font-semibold">Fame Change</div>
-              <div className={`text-3xl font-black ${fameChange > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {fameChange > 0 ? '+' : ''}{fameChange}
-              </div>
-            </div>
-            <div>
-              <div className="text-sm text-purple-700 font-semibold">Earnings</div>
-              <div className="text-3xl font-black text-green-600">
-                ₹{wealthChange}L
-              </div>
+            <div style={{ fontFamily:'Courier Prime,monospace', fontSize:10, color:C.faded }}>
+              {latestFilm.year}
             </div>
           </div>
-        </motion.div>
 
-        {/* Continue Button */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.2 }}
-          className="relative z-10 mt-6 text-center"
-        >
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={advanceYear}
-            className="bg-gradient-to-b from-blue-400 to-blue-600 text-white font-bold py-4 px-8 rounded-lg border-3 border-blue-800 shadow-[0_4px_0_rgb(30,64,175)] hover:shadow-[0_2px_0_rgb(30,64,175)] active:translate-y-1 transition-all text-lg"
-          >
-            Continue to Next Year →
+          {/* Result banner */}
+          <div style={{
+            background: isHit ? 'rgba(184,134,11,0.2)' : isFlop ? 'rgba(139,26,10,0.15)' : 'rgba(0,0,0,0.08)',
+            border:`2px solid ${resultColor}`,
+            borderRadius:3, padding:'14px 18px', marginBottom:16,
+            display:'flex', alignItems:'center', justifyContent:'center', gap:12,
+          }}>
+            <span style={{ fontSize:36 }}>{resultEmoji}</span>
+            <div style={{ fontFamily:"'Libre Baskerville',serif", fontSize:14, fontWeight:700,
+                          textTransform:'uppercase', letterSpacing:'0.1em', color:resultColor }}>
+              {resultLabel}
+            </div>
+          </div>
+
+          <div style={{ height:1, background:C.border, opacity:0.28, marginBottom:14 }}/>
+
+          {/* Stats grid */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:14 }}>
+            <StatBox label="Box Office" value={`${outcome.boxOfficeMultiplier.toFixed(1)}x`} />
+            <StatBox label="Critics" value={`${outcome.criticsScore}/100`} />
+            <StatBox label="Audience" value={`${outcome.audienceScore}/100`} />
+            <StatBox label="Earnings" value={wealthFmt(outcome.wealthChange)} gold />
+          </div>
+
+          {/* Impact chips */}
+          <div style={{ display:'flex', gap:8, marginBottom:16, flexWrap:'wrap' as const, justifyContent:'center' }}>
+            {outcome.fameChange !== 0 && (
+              <Chip label="Fame" value={outcome.fameChange} />
+            )}
+            {outcome.mentalHealthChange !== 0 && (
+              <Chip label="Mental" value={outcome.mentalHealthChange} />
+            )}
+          </div>
+
+          <div style={{ height:1, borderTop:'1.5px dashed rgba(139,90,43,0.4)', marginBottom:14 }}/>
+
+          {/* Continue button */}
+          <motion.button onClick={advanceYear}
+            whileHover={{ y:-1 }} whileTap={{ y:1 }}
+            style={{
+              width:'100%', padding:'12px 14px', cursor:'pointer', borderRadius:3,
+              background:`linear-gradient(180deg,${C.parchMid},${C.parchDark})`,
+              border:`2px solid ${C.border}`, borderBottomWidth:4,
+              boxShadow:`0 3px 0 ${C.borderDark}`,
+              fontFamily:"'Libre Baskerville',serif", fontSize:11, fontWeight:700,
+              textTransform:'uppercase', letterSpacing:'0.07em', color:C.ink,
+              display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+            } as React.CSSProperties}>
+            <span>→</span> Continue to Next Year
           </motion.button>
-          <p className="text-xs text-amber-700 mt-2">Auto-advancing in 5 seconds...</p>
-        </motion.div>
+
+        </div>
       </motion.div>
+    </div>
+  );
+}
+
+function StatBox({ label, value, gold=false }: { label:string; value:string; gold?:boolean }) {
+  return (
+    <div style={{
+      padding:'10px 12px', borderRadius:3,
+      background: gold ? 'rgba(184,134,11,0.12)' : 'rgba(0,0,0,0.05)',
+      border:`2px solid ${gold ? C.gold : C.border}`,
+      boxShadow:'inset 0 1px 2px rgba(0,0,0,0.08)',
+    }}>
+      <div style={{ fontFamily:"'Libre Baskerville',serif", fontSize:8, fontWeight:700,
+                    textTransform:'uppercase', letterSpacing:'0.08em', color:C.faded, marginBottom:3 }}>
+        {label}
+      </div>
+      <div style={{ fontFamily:'Courier Prime,monospace', fontSize:16, fontWeight:700,
+                    color: gold ? C.gold : C.ink }}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function Chip({ label, value }: { label:string; value:number }) {
+  const isPositive = value > 0;
+  return (
+    <div style={{
+      padding:'4px 10px', borderRadius:2,
+      background: isPositive ? 'rgba(42,90,26,0.12)' : 'rgba(139,26,10,0.12)',
+      border:`1.5px solid ${isPositive ? '#2A5A1A' : '#8B1A0A'}`,
+      display:'flex', alignItems:'center', gap:4,
+    }}>
+      <span style={{ fontFamily:"'Libre Baskerville',serif", fontSize:8, fontWeight:700,
+                     textTransform:'uppercase', color: isPositive ? '#2A5A1A' : '#8B1A0A' }}>
+        {label}:
+      </span>
+      <span style={{ fontFamily:'Courier Prime,monospace', fontSize:10, fontWeight:700,
+                     color: isPositive ? '#2A5A1A' : '#8B1A0A' }}>
+        {value > 0 ? '+' : ''}{value}
+      </span>
     </div>
   );
 }
